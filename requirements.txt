@@ -1,2 +1,3 @@
+netifaces
 git+https://github.com/CALM-LMU/CalmUtils@0.0.2#egg=CalmUtils-0.0.2
 git+https://github.com/CALM-LMU/segmentation-playground@0.0.2#egg=calmutils-segmentation-0.0.2
