@@ -1,5 +1,6 @@
 from xmlrpc.server import SimpleXMLRPCServer
 import argparse
+import traceback
 
 from calmutils.segmentation import Tools
 from calmutils.imageio import read_bf
@@ -24,7 +25,7 @@ class Worker:
             img = read_bf(img_path)
 
             if int(np.log2(4.0 / existing_ds)) > 1:
-                img = pyramid_gaussian(img, int(np.log2(4.0 / existing_ds)))[-1]
+                img = list(pyramid_gaussian(img, int(np.log2(4.0 / existing_ds))))[-1]
 
             res = self.tools.predict(img)
 
@@ -36,7 +37,8 @@ class Worker:
                     res2.append([r.bbox for r in self.tools.get_regions(res_i)])
             return res2
 
-        except Exception:
+        except Exception as e:
+            traceback.print_exc()
             return []
 
 
