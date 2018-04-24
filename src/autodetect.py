@@ -5,7 +5,10 @@ from calmutils.segmentation import Tools
 from calmutils.imageio import read_bf
 from calmutils.misc import filter_rprops
 
+from skimage.transform import pyramid_gaussian
+
 import netifaces as ni
+import numpy as np
 
 def get_ip(interface='eth0'):
     ni.ifaddresses(interface)
@@ -16,9 +19,14 @@ class Worker:
     def __init__(self, unet_conf_dir):
         self.tools = Tools(unet_conf_dir)
 
-    def __call__(self, img_path, filt=None):
+    def __call__(self, img_path, existing_ds=4, filt=None):
         try:
-            res = self.tools.predict(read_bf(img_path))
+            img = read_bf(img_path)
+
+            if int(np.log2(4.0 / existing_ds)) > 1:
+                img = pyramid_gaussian(img, int(np.log2(4.0 / existing_ds)))[-1]
+
+            res = self.tools.predict(img)
 
             res2 = []
             for res_i in res:
