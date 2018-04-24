@@ -3,6 +3,7 @@ import argparse
 
 from calmutils.segmentation import Tools
 from calmutils.imageio import read_bf
+from calmutils.misc import filter_rprops
 
 import netifaces as ni
 
@@ -15,9 +16,18 @@ class Worker:
     def __init__(self, unet_conf_dir):
         self.tools = Tools(unet_conf_dir)
 
-    def __call__(self, img_path):
+    def __call__(self, img_path, filt=None):
         try:
-            return self.tools.predict_bbox(read_bf(img_path))
+            res = self.tools.predict(read_bf(img_path))
+
+            res2 = []
+            for res_i in res:
+                if filt is not None:
+                    res2.append([ r.bbox for r in self.tools.get_regions(res_i) if filter_rprops(r, filt)])
+                else:
+                    res2.append([r.bbox for r in self.tools.get_regions(res_i)])
+            return res2
+
         except Exception:
             return []
 
