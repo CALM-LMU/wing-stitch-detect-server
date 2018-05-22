@@ -23,9 +23,9 @@ class Worker:
     def __call__(self, img_path, existing_ds=4, filt=None):
         try:
             img = read_bf(img_path)
-
-            if int(np.log2(4.0 / existing_ds)) > 1:
-                img = list(pyramid_gaussian(img, int(np.log2(4.0 / existing_ds))))[-1]
+            print('read image of dtype {}'.format(img.dtype))
+            if int(round(np.log2(4.0 / existing_ds))) >= 1:
+                img = list(pyramid_gaussian(img, int(np.round(np.log2(4.0 / existing_ds)))))[-1]
 
             res = self.tools.predict(img)
 
