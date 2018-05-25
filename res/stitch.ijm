@@ -6,7 +6,8 @@ directory = substring(file, 0, lastDelim);
 // note that because of incorrect loading of ND2 metadata, we apply 100% overlap
 // that way, we have to do more calculations, but it works
 // TODO: fix in loader!
-run("Define dataset ...", "define_dataset=[Automatic Loader (Bioformats based)]project_filename=dataset.xml path="+file+" exclude=10 bioformats_series_are?=Tiles move_tiles_to_grid_(per_angle)?=[Move Tile to Grid (Macro-scriptable)] grid_type=[Right & Down             ] tiles_x=10 tiles_y=10 tiles_z=1 overlap_x_(%)=100 overlap_y_(%)=100 overlap_z_(%)=0 keep_metadata_rotation use_virtual_images_(cached) dataset_save_path="+file+"_stitched");
+// changes in dialogs from multiview-reconstruction > 0.2.2
+run("Define dataset ...", "define_dataset=[Automatic Loader (Bioformats based)]project_filename=dataset.xml path="+file+" exclude=10 bioformats_series_are?=Tiles move_tiles_to_grid_(per_angle)?=[Move Tile to Grid (Macro-scriptable)] grid_type=[Right & Down             ] tiles_x=50 tiles_y=50 tiles_z=1 overlap_x_(%)=100 overlap_y_(%)=100 overlap_z_(%)=0 keep_metadata_rotation how_to_load_images=[Load raw data virtually (with caching)] dataset_save_path="+file+"_stitched");
 
 // --------- calculate shifts ----------
 run("Calculate pairwise shifts ...", "select="+file+"_stitched/dataset.xml process_angle=[All angles] process_channel=[All channels] process_illumination=[All illuminations] process_tile=[All tiles] process_timepoint=[All Timepoints] method=[Phase Correlation] channels=[use Channel DIA10x] downsample_in_x=4 downsample_in_y=4 downsample_in_z=2");
