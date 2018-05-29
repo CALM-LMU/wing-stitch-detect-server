@@ -7,8 +7,8 @@ import os
 import sys
 import logging
 
-from .autostitch import AsyncFileProcesser
-from .autodetect import get_ip
+from autostitch import AsyncFileProcesser
+from autodetect import get_ip
 
 def main():
 
@@ -17,7 +17,7 @@ def main():
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
-                        level=logging.DEBUG if args.debug else logging.INFO,
+                        level=logging.DEBUG,
                         datefmt='%d.%m.%Y %H:%M:%S')
     logger = logging.getLogger(__name__)
 
@@ -27,12 +27,15 @@ def main():
         logger.error('fiji executable not found')
         sys.exit(1)
 
-    processor = AsyncFileProcesser(args.fiji, args.macro if args.macro else os.path.join(os.path.abspath(__file__).rsplit(os.sep, 2)[0], 'res', 'stitch.ijm' ))
+    processor = AsyncFileProcesser(args.fiji, os.path.join(os.path.abspath(__file__).rsplit(os.sep, 2)[0], 'res', 'stitch.ijm' ))
 
-    server = SimpleXMLRPCServer((get_ip(args.interface if args.interface else 'eth0'), int(args.port if args.port else 8001)))
+    server = SimpleXMLRPCServer((get_ip('eth0'), 8001),allow_none=True)
     server.register_function(processor, "stitch")
 
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
+
+if __name__ == '__main__':
+    main()

@@ -52,7 +52,9 @@ class AsyncFileProcesser:
         if not os.path.exists(args[0] + '_stitched'):
             os.mkdir(args[0] + '_stitched')
         #TODO: move here?
-        subprocess.call([fiji, '--headless', '-macro', script, '"{} {} {} {}"'.format(args[0], int(args[1]), int(args[2]), float(args[3]))])
+        pr = subprocess.call([fiji, '--headless', '-macro', script, '"{} {} {} {}"'.format(args[0], int(args[1]), int(args[2]), float(args[3]))],
+                stderr=subprocess.PIPE)
+        print(pr.stderr)
 
 
 class FolderWatcher:

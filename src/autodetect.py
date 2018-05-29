@@ -12,7 +12,7 @@ from skimage.io import imread
 import netifaces as ni
 import numpy as np
 
-from .autostitch import AsyncFileProcesser
+from autostitch import AsyncFileProcesser
 
 
 # filetypes to read with bioformates/imread (nd2 or tiff)
