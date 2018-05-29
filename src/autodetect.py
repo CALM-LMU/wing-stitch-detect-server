@@ -7,9 +7,16 @@ from calmutils.imageio import read_bf
 from calmutils.misc import filter_rprops
 
 from skimage.transform import pyramid_gaussian
+from skimage.io import imread
 
 import netifaces as ni
 import numpy as np
+
+
+# filetypes to read with bioformates/imread (nd2 or tiff)
+BF_ENDINGS = ['nd2']
+IMREAD_ENDINGS = ['tif', 'tiff']
+
 
 def get_ip(interface='eth0'):
     ni.ifaddresses(interface)
@@ -22,7 +29,14 @@ class Worker:
 
     def __call__(self, img_path, existing_ds=4, filt=None):
         try:
-            img = read_bf(img_path)
+
+            if img_path.split('.')[-1] in BF_ENDINGS:
+                img = read_bf(img_path)
+            elif img_path.split('.')[-1] in IMREAD_ENDINGS:
+                img = imread(img_path)
+            else:
+                raise ValueError('Unknown file ending')
+
             print('read image of dtype {}'.format(img.dtype))
             if int(round(np.log2(4.0 / existing_ds))) >= 1:
                 img = list(pyramid_gaussian(img, int(np.round(np.log2(4.0 / existing_ds)))))[-1]
