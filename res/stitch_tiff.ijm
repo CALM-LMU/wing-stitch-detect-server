@@ -13,7 +13,7 @@ directory = substring(file, 0, lastDelim);
 // that way, we have to do more calculations, but it works
 // TODO: fix in loader!
 // changes in dialogs from multiview-reconstruction > 0.2.2
-run("Define dataset ...", "define_dataset=[Automatic Loader (Bioformats based)]project_filename=dataset.xml path="+file+" exclude=10 bioformats_series_are?=Tiles move_tiles_to_grid_(per_angle)?=[Move Tile to Grid (Macro-scriptable)] grid_type=[Snake: Right & Down      ] tiles_x="+tilesX+" tiles_y="+tilesY+" tiles_z=1 overlap_x_(%)="+floor(overlap*100)+" overlap_y_(%)="+floor(overlap*100)+" overlap_z_(%)=0 keep_metadata_rotation how_to_load_images=[Load raw data virtually (with caching)] dataset_save_path="+file+"_stitched");
+run("Define dataset ...", "define_dataset=[Automatic Loader (Bioformats based)]project_filename=dataset.xml path="+file+" exclude=10 pattern_0=Tiles pattern_1=Channels move_tiles_to_grid_(per_angle)?=[Move Tile to Grid (Macro-scriptable)] grid_type=[Snake: Right & Down      ] tiles_x="+tilesX+" tiles_y="+tilesY+" tiles_z=1 overlap_x_(%)="+floor(overlap*100)+" overlap_y_(%)="+floor(overlap*100)+" overlap_z_(%)=0 keep_metadata_rotation how_to_load_images=[Load raw data virtually (with caching)] dataset_save_path="+file+"_stitched");
 
 // --------- calculate shifts ----------
 run("Calculate pairwise shifts ...", "select="+file+"_stitched/dataset.xml process_angle=[All angles] process_channel=[All channels] process_illumination=[All illuminations] process_tile=[All tiles] process_timepoint=[All Timepoints] method=[Phase Correlation] channels=[use Channel DIA10x] downsample_in_x=4 downsample_in_y=4 downsample_in_z=2");

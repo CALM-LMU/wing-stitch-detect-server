@@ -27,7 +27,9 @@ def main():
         logger.error('fiji executable not found')
         sys.exit(1)
 
-    processor = AsyncFileProcesser(args.fiji, os.path.join(os.path.abspath(__file__).rsplit(os.sep, 2)[0], 'res', 'stitch.ijm' ))
+    processor = AsyncFileProcesser(args.fiji,
+                                   os.path.join(os.path.abspath(__file__).rsplit(os.sep, 2)[0], 'res', 'stitch.ijm' ),
+                                   os.path.join(os.path.abspath(__file__).rsplit(os.sep, 2)[0], 'res', 'stitch_tiff.ijm'))
 
     server = SimpleXMLRPCServer((get_ip('eth0'), 8001),allow_none=True)
     server.register_function(processor, "stitch")
