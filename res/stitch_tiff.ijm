@@ -5,6 +5,10 @@ tilesX = parseInt(a[1])
 tilesY = parseInt(a[2])
 overlap = parseFloat(a[3])
 
+// FIXME: the stitcher applies the wrong preset???
+// fix in stitcher
+overlap = 1.0
+
 lastDelim = lastIndexOf(file, "/");
 directory = substring(file, 0, lastDelim);
 
