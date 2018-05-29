@@ -19,17 +19,21 @@ def copy_lock(src, dst, copyfun=shutil.copy2, lock_ending='lock'):
 
 class AsyncFileProcesser:
 
-    def __init__(self, fiji, script):
+    def __init__(self, fiji, script_nd2, script_tiff=None):
         self.procs = []
         self.fiji = fiji
-        self.script = script
+        self.script_nd2 = script_nd2
+        self.script_tiff = script_tiff if not script_tiff is None else script_nd2
 
 
-    def __call__(self, file):
+    def __call__(self, args, tiff=False):
         # clean some old procs
         self.procs = [p for p in self.procs if p.is_alive()]
 
-        proc = multiprocessing.Process(target=self.fiji_call, args=(self.fiji, self.script, file))
+        if tiff:
+            proc = multiprocessing.Process(target=self.fiji_call, args=(self.fiji, self.script_tiff, args))
+        else:
+            proc = multiprocessing.Process(target=self.fiji_call, args=(self.fiji, self.script_nd2, args))
         proc.start()
 
         self.procs.append(proc)
@@ -41,11 +45,14 @@ class AsyncFileProcesser:
 
 
     @staticmethod
-    def fiji_call(fiji, script, file):
-        if not os.path.exists(file + '_stitched'):
-            os.mkdir(file + '_stitched')
+    def fiji_call(fiji, script, args):
+
+        if not isinstance(args, list):
+            args = [args, 50, 50, 1.0]
+        if not os.path.exists(args[0] + '_stitched'):
+            os.mkdir(args[0] + '_stitched')
         #TODO: move here?
-        subprocess.call([fiji, '--headless', '-macro', script, file])
+        subprocess.call([fiji, '--headless', '-macro', script, '"{} {} {} {}"'.format(args[0], int(args[1]), int(args[2]), float(args[3]))])
 
 
 class FolderWatcher:

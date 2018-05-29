@@ -12,6 +12,8 @@ from skimage.io import imread
 import netifaces as ni
 import numpy as np
 
+from .autostitch import AsyncFileProcesser
+
 
 # filetypes to read with bioformates/imread (nd2 or tiff)
 BF_ENDINGS = ['nd2']
@@ -23,7 +25,8 @@ def get_ip(interface='eth0'):
     ip = ni.ifaddresses(interface)[ni.AF_INET][0]['addr']
     return ip
 
-class Worker:
+
+class DetectionWorker:
     def __init__(self, unet_conf_dir):
         self.tools = Tools(unet_conf_dir)
 
@@ -65,8 +68,9 @@ def main():
 
     args = parser.parse_args()
 
+
     server = SimpleXMLRPCServer((get_ip(args.interface if args.interface else 'eth0'), int(args.port if args.port else 8000)))
-    server.register_function(Worker(args.unet_dir), "detect_bbox")
+    server.register_function(DetectionWorker(args.unet_dir), "detect_bbox")
 
     try:
         server.serve_forever()
