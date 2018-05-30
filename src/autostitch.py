@@ -6,6 +6,7 @@ import subprocess
 import shutil
 import os
 import argparse
+import threading
 
 
 def copy_lock(src, dst, copyfun=shutil.copy2, lock_ending='lock'):
@@ -31,9 +32,9 @@ class AsyncFileProcesser:
         self.procs = [p for p in self.procs if p.is_alive()]
 
         if tiff:
-            proc = multiprocessing.Process(target=self.fiji_call, args=(self.fiji, self.script_tiff, args))
+            proc = threading.Thread(target=self.fiji_call, args=(self.fiji, self.script_tiff, args))
         else:
-            proc = multiprocessing.Process(target=self.fiji_call, args=(self.fiji, self.script_nd2, args))
+            proc = threading.Thread(target=self.fiji_call, args=(self.fiji, self.script_nd2, args))
         proc.start()
 
         self.procs.append(proc)
@@ -51,10 +52,11 @@ class AsyncFileProcesser:
             args = [args, 50, 50, 1.0]
         if not os.path.exists(args[0] + '_stitched'):
             os.mkdir(args[0] + '_stitched')
-        #TODO: move here?
-        pr = subprocess.call([fiji, '--headless', '-macro', script, '"{} {} {} {}"'.format(args[0], int(args[1]), int(args[2]), float(args[3]))],
-                stderr=subprocess.PIPE)
-        print(pr.stderr)
+        
+        pr = subprocess.Popen("{} --headless -macro {} '{} {} {} {}'".format(fiji, script, args[0], int(args[1]), int(args[2]), float(args[3])),
+                stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True, universal_newlines=True, encoding='utf-8')
+        for t in pr.stdout:
+            print(t, end='')
 
 
 class FolderWatcher:
