@@ -7,7 +7,8 @@ from calmutils.imageio import read_bf
 from calmutils.misc import filter_rprops
 
 from skimage.transform import pyramid_gaussian
-from skimage.io import imread
+from skimage.io import imread, imsave
+from skimage.measure import regionprops, label
 
 import netifaces as ni
 import numpy as np
@@ -26,11 +27,25 @@ def get_ip(interface='eth0'):
     return ip
 
 
+def label_and_filter(img, filt=None):
+
+    if filt is None:
+        return label(img)
+
+    # set objects rejected by filter to 0
+    for r in regionprops(label(img)):
+        (min_row, min_col, max_row, max_col) = r.bbox
+        if not filter_rprops(r, filt):
+            img[min_row:max_row, min_col:max_col][r.image] = 0
+
+    return label(img)
+
+
 class DetectionWorker:
     def __init__(self, unet_conf_dir):
         self.tools = Tools(unet_conf_dir)
 
-    def __call__(self, img_path, existing_ds=4, filt=None):
+    def __call__(self, img_path, existing_ds=4, filt=None, label_export_path=None):
         try:
 
             if img_path.split('.')[-1] in BF_ENDINGS:
@@ -45,6 +60,13 @@ class DetectionWorker:
                 img = list(pyramid_gaussian(img, int(np.round(np.log2(4.0 / existing_ds)))))[-1]
 
             res = self.tools.predict(img)
+
+            # export the labels
+            # NB: we only export the first image of a stack
+            #     as we only use single images at the moment, this should be fine
+            if (label_export_path is not None) and len(res) > 0:
+                lab = label_and_filter(res[0], filt).astype(np.uint16)
+                imsave(label_export_path, lab)
 
             res2 = []
             for res_i in res:
