@@ -1,12 +1,14 @@
 import sys
 import time
 import logging
-import multiprocessing
 import subprocess
 import shutil
 import os
 import argparse
 import threading
+import re
+
+STITCHER_ENDING = '.tif'
 
 
 def copy_lock(src, dst, copyfun=shutil.copy2, lock_ending='lock'):
@@ -18,6 +20,59 @@ def copy_lock(src, dst, copyfun=shutil.copy2, lock_ending='lock'):
     os.rm(lock_file)
 
 
+def split_str_digit(s):
+    """
+    split s into numeric (integer) and non-numeric parts
+    return split as a tuple of ints and strings
+    """
+    res = []
+    for m in re.finditer('(\d*)(\D*)', s):
+        for g in m.groups():
+            if g != '':
+                try:
+                    res.append(int(g))
+                except ValueError:
+                    res.append(g)
+    return tuple(res)
+
+
+def handle_cleanup(stitching_path, outpaths, outnames=None, raw_paths=None, delete_raw=True, delete_stitching=True):
+    """
+    cleanup after stitching is complete: move to output paths, delete temp files
+
+    Parameters
+    ----------
+    stitching_path: str
+        path containing stitching results (and no other STITCHER_ENDING files, e.g. raw data)
+    outpaths: list of str
+        n paths: path_i is path to copy channel_i to
+    """
+
+    # get natural-ordered stitched files (if we have more than 10 channels....)
+    stitched_files = [f for f in os.listdir(stitching_path) if f.endswith(STITCHER_ENDING)]
+    stitched_files.sort(key=lambda x: split_str_digit(x))
+
+    # check same size -> raise ValueError if mismatch
+    if len(stitched_files) != len(outpaths) or (outnames and len(stitched_files) != len(outnames)):
+        raise ValueError('number of files to copy and provided destinations mismatch')
+
+    # do the copy
+    for (idx, f) in enumerate(stitched_files):
+        shutil.copy2(os.path.join(stitching_path, f), os.path.join(outpaths[idx], outnames[idx] if outnames else f))
+
+    # stitching is a directory -> remove
+    if delete_stitching:
+        shutil.rmtree(stitching_path)
+
+    # raw paths can be files or dirs -> remove
+    if delete_raw and raw_paths is not None:
+        for raw_path in raw_paths:
+            if os.path.isdir(raw_path):
+                shutil.rmtree(raw_path)
+            else:
+                os.remove(raw_path)
+
+
 class AsyncFileProcesser:
 
     def __init__(self, fiji, script_nd2, script_tiff=None):
@@ -27,14 +82,14 @@ class AsyncFileProcesser:
         self.script_tiff = script_tiff if not script_tiff is None else script_nd2
 
 
-    def __call__(self, args, tiff=False):
+    def __call__(self, args, tiff=False, channel_names=None, cleanup_args=None):
         # clean some old procs
         self.procs = [p for p in self.procs if p.is_alive()]
 
         if tiff:
-            proc = threading.Thread(target=self.fiji_call, args=(self.fiji, self.script_tiff, args))
+            proc = threading.Thread(target=self.fiji_call, args=(self.fiji, self.script_tiff, args, cleanup_args))
         else:
-            proc = threading.Thread(target=self.fiji_call, args=(self.fiji, self.script_nd2, args))
+            proc = threading.Thread(target=self.fiji_call, args=(self.fiji, self.script_nd2, args, cleanup_args))
         proc.start()
 
         self.procs.append(proc)
@@ -46,7 +101,7 @@ class AsyncFileProcesser:
 
 
     @staticmethod
-    def fiji_call(fiji, script, args):
+    def fiji_call(fiji, script, args, cleanup_args=None):
 
         if not isinstance(args, list):
             args = [args, 50, 50, 1.0]
@@ -57,6 +112,9 @@ class AsyncFileProcesser:
                 stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True, universal_newlines=True, encoding='utf-8')
         for t in pr.stdout:
             print(t, end='')
+
+        if cleanup_args is not None:
+            handle_cleanup(**cleanup_args)
 
 
 class FolderWatcher:
