@@ -14,6 +14,8 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('fiji', help='path of the Fiji/ImageJ executable')
+    parser.add_argument('-p', '--port', help='port to listen on')
+    parser.add_argument('-i', '--interface', help='inteface to listen on')
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
@@ -31,7 +33,7 @@ def main():
                                    os.path.join(os.path.abspath(__file__).rsplit(os.sep, 2)[0], 'res', 'stitch.ijm' ),
                                    os.path.join(os.path.abspath(__file__).rsplit(os.sep, 2)[0], 'res', 'stitch_tiff.ijm'))
 
-    server = SimpleXMLRPCServer((get_ip('eth0'), 8001),allow_none=True)
+    server = SimpleXMLRPCServer((get_ip(args.interface if args.interface else 'eth0'), int(args.port if args.port else 8001)),allow_none=True)
     server.register_function(processor, "stitch")
 
     try:
