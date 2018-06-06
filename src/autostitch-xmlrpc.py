@@ -39,7 +39,14 @@ def main():
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        pass
+        try:
+            print('Interrupted, waiting for stitching to finish. Press Ctrl-C again to quit immediately.')
+            processor.quit()
+            print('All stitching tasks completed.')
+        except KeyboardInterrupt:
+            pass
+        finally:
+            print('Done.')
 
 if __name__ == '__main__':
     main()
