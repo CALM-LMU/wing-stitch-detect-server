@@ -82,7 +82,7 @@ class AsyncFileProcesser:
         self.script_tiff = script_tiff if not script_tiff is None else script_nd2
 
 
-    def __call__(self, args, tiff=False, channel_names=None, cleanup_args=None):
+    def __call__(self, args, tiff=False, cleanup_args=None):
         # clean some old procs
         self.procs = [p for p in self.procs if p.is_alive()]
 
