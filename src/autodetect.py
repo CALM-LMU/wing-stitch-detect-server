@@ -3,6 +3,8 @@ import argparse
 import traceback
 
 from calmutils.segmentation import Tools
+from biocnn.mrcnn import BboxPredictor
+
 from calmutils.imageio import read_bf
 from calmutils.misc import filter_rprops
 
@@ -13,10 +15,10 @@ from skimage.measure import regionprops, label
 import netifaces as ni
 import numpy as np
 
-from autostitch import AsyncFileProcesser
-
 
 # filetypes to read with bioformates/imread (nd2 or tiff)
+from src.autodetect import DetectionWorkerMRCNN
+
 BF_ENDINGS = ['nd2']
 IMREAD_ENDINGS = ['tif', 'tiff']
 
@@ -81,18 +83,49 @@ class DetectionWorker:
             return []
 
 
+class DetectionWorkerMRCNN:
+    def __init__(self, weight_dir):
+        self.bboxpred = BboxPredictor(weight_dir)
+
+    def __call__(self, img_path, existing_ds=4, filt=None, label_export_path=None):
+        try:
+
+            if img_path.split('.')[-1] in BF_ENDINGS:
+                img = read_bf(img_path)
+            elif img_path.split('.')[-1] in IMREAD_ENDINGS:
+                img = imread(img_path)
+            else:
+                raise ValueError('Unknown file ending')
+
+            print('read image of dtype {}'.format(img.dtype))
+            if int(round(np.log2(4.0 / existing_ds))) >= 1:
+                img = list(pyramid_gaussian(img, int(np.round(np.log2(4.0 / existing_ds)))))[-1]
+
+            res = self.bboxpred.predict_bbox(img)
+
+            # flip xy
+            return [(b[1], b[0], b[3], b[2]) for b in res]
+
+        except Exception as e:
+            traceback.print_exc()
+            return []
+
+
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('unet_dir', help='directory of U-net project')
+    parser.add_argument('net_dir', help='directory of network weights/params')
     parser.add_argument('-p', '--port', help='port to listen on')
     parser.add_argument('-i', '--interface', help='inteface to listen on')
-
+    parser.add_argument('-m' '--model', help='model to use, may be "rcnn" or "unet"', default="unet")
     args = parser.parse_args()
 
-
     server = SimpleXMLRPCServer((get_ip(args.interface if args.interface else 'eth0'), int(args.port if args.port else 8000)))
-    server.register_function(DetectionWorker(args.unet_dir), "detect_bbox")
+
+    if args.model == 'rcnn':
+        server.register_function(DetectionWorkerMRCNN(args.net_dir), "detect_bbox")
+    else:
+        server.register_function(DetectionWorker(args.net_dir), "detect_bbox")
 
     try:
         server.serve_forever()
