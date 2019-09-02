@@ -1,4 +1,4 @@
 netifaces
 git+https://github.com/CALM-LMU/CalmUtils@0.0.3#egg=CalmUtils-0.0.3
 git+https://github.com/CALM-LMU/segmentation-playground@0.0.5#egg=calmutils-segmentation-0.0.5
-git+https://github.com/CALM-LMU/WingDetector@0.0.4#WingDetector-0.0.4
+git+https://github.com/CALM-LMU/WingDetector@0.0.5#WingDetector-0.0.5
