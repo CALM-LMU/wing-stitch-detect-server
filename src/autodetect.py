@@ -13,6 +13,7 @@ from skimage.transform import pyramid_gaussian
 from skimage.io import imread, imsave
 from skimage.measure import regionprops, label
 from skimage.exposure import rescale_intensity
+from skimage.color import rgb2grey
 
 import netifaces as ni
 import numpy as np
@@ -60,6 +61,9 @@ class DetectionWorker:
             else:
                 raise ValueError('Unknown file ending')
 
+            if len(img.shape) > 2:
+                img = rgb2grey(img)
+
             print('read image of dtype {}'.format(img.dtype))
             if int(round(np.log2(EXPECTED_DS_DEFAULT / existing_ds))) >= 1:
                 img = list(pyramid_gaussian(img, int(np.round(np.log2(EXPECTED_DS_DEFAULT / existing_ds)))))[-1]
@@ -100,6 +104,9 @@ class DetectionWorkerMRCNN:
             else:
                 raise ValueError('Unknown file ending')
 
+            if len(img.shape) > 2:
+               img = rgb2grey(img)
+
             print('read image of dtype {}'.format(img.dtype))
             if int(round(np.log2(EXPECTED_DS_DEFAULT / existing_ds))) >= 1:
                 img = list(pyramid_gaussian(img, int(np.round(np.log2(EXPECTED_DS_DEFAULT / existing_ds)))))[-1]
@@ -128,6 +135,9 @@ class MulticlassDetectionWorkerMRCNN:
                 img = imread(img_path)
             else:
                 raise ValueError('Unknown file ending')
+
+            if len(img.shape) > 2:
+                img = rgb2grey(img)
 
             print('read image of dtype {}'.format(img.dtype))
             if int(round(np.log2(EXPECTED_DS_DEFAULT / existing_ds))) >= 1:
