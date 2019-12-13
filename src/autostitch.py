@@ -6,6 +6,7 @@ import shutil
 import os
 import argparse
 import threading
+from concurrent.futures import ThreadPoolExecutor
 import re
 
 STITCHER_ENDING = '.tif'
@@ -75,40 +76,35 @@ def handle_cleanup(stitching_path, outpaths, outnames=None, raw_paths=None, dele
 
 class AsyncFileProcesser:
 
-    def __init__(self, fiji, script_nd2, script_tiff=None):
-        self.procs = []
+    def __init__(self, fiji, script_nd2, script_tiff=None, num_workers=1):
+        self.pool = ThreadPoolExecutor(max_workers=num_workers)
         self.fiji = fiji
         self.script_nd2 = script_nd2
         self.script_tiff = script_tiff if not script_tiff is None else script_nd2
 
 
     def __call__(self, args, tiff=False, cleanup_args=None):
-        # clean some old procs
-        self.procs = [p for p in self.procs if p.is_alive()]
+
 
         if tiff:
-            proc = threading.Thread(target=self.fiji_call, args=(self.fiji, self.script_tiff, args, cleanup_args))
+            self.pool.submit(self.fiji_call, *(self.fiji, self.script_tiff, args, cleanup_args))
         else:
-            proc = threading.Thread(target=self.fiji_call, args=(self.fiji, self.script_nd2, args, cleanup_args))
-        proc.start()
-
-        self.procs.append(proc)
+            self.pool.submit(self.fiji_call, *(self.fiji, self.script_nd2, args, cleanup_args))
 
 
     def quit(self):
-        for proc in self.procs:
-            proc.join()
+        self.pool.shutdown()
 
 
-    @staticmethod
-    def fiji_call(fiji, script, args, cleanup_args=None):
+    def fiji_call(self, fiji, script, args, cleanup_args=None):
 
         if not isinstance(args, list):
-            args = [args, 50, 50, 1.0]
+            args = [args, 50, 50, 1.0] if script is self.script_tiff else [args]
+
         if not os.path.exists(args[0] + '_stitched'):
             os.mkdir(args[0] + '_stitched')
         
-        pr = subprocess.Popen("{} --headless -macro {} '{} {} {} {}'".format(fiji, script, args[0], int(args[1]), int(args[2]), float(args[3])),
+        pr = subprocess.Popen("{} --headless -macro {} '{}'".format(fiji, script, ' '.join(map(str, args))),
                 stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True, universal_newlines=True, encoding='utf-8')
         for t in pr.stdout:
             print(t, end='')
