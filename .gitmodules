@@ -1,3 +1,6 @@
-[submodule "lib/StructuredAppearanceModelRegistration"]
-	path = lib/StructuredAppearanceModelRegistration
+[submodule "StructuredAppearanceModelRegistration"]
+	path = StructuredAppearanceModelRegistration
+	url = https://github.com/YannLePoul/StructuredAppearanceModelRegistration.git
+[submodule "src/lib/StructuredAppearanceModelRegistration"]
+	path = src/lib/StructuredAppearanceModelRegistration
 	url = https://github.com/YannLePoul/StructuredAppearanceModelRegistration.git
