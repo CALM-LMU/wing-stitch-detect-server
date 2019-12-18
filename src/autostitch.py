@@ -5,9 +5,10 @@ import subprocess
 import shutil
 import os
 import argparse
-import threading
 from concurrent.futures import ThreadPoolExecutor
 import re
+
+from projection import ProjectorApplication
 
 STITCHER_ENDING = '.tif'
 
@@ -82,21 +83,23 @@ class AsyncFileProcesser:
         self.script_nd2 = script_nd2
         self.script_tiff = script_tiff if not script_tiff is None else script_nd2
 
+        self.projector = ProjectorApplication()
 
-    def __call__(self, args, tiff=False, cleanup_args=None):
+
+    def __call__(self, args, tiff=False, cleanup_args=None, project=False):
 
 
         if tiff:
-            self.pool.submit(self.fiji_call, *(self.fiji, self.script_tiff, args, cleanup_args))
+            self.pool.submit(self.fiji_call, *(self.fiji, self.script_tiff, args, cleanup_args, project))
         else:
-            self.pool.submit(self.fiji_call, *(self.fiji, self.script_nd2, args, cleanup_args))
+            self.pool.submit(self.fiji_call, *(self.fiji, self.script_nd2, args, cleanup_args, project))
 
 
     def quit(self):
         self.pool.shutdown()
 
 
-    def fiji_call(self, fiji, script, args, cleanup_args=None):
+    def fiji_call(self, fiji, script, args, cleanup_args=None, project=False):
 
         if not isinstance(args, list):
             args = [args, 50, 50, 1.0] if script is self.script_tiff else [args]
@@ -108,6 +111,16 @@ class AsyncFileProcesser:
                 stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True, universal_newlines=True, encoding='utf-8')
         for t in pr.stdout:
             print(t, end='')
+
+        if project:
+            stitching_path = args[0] + '_stitched'
+            stitched_files = [f for f in os.listdir(stitching_path) if f.endswith(STITCHER_ENDING)]
+            stitched_files.sort(key=lambda x: split_str_digit(x))
+
+            outbase = args[0].replace('raw', 'projected')
+
+            self.projector._project(self.projector.projector,
+                                    infiles=[os.path.join(stitching_path, f) for f in stitched_files], outfile_base=outbase, rgb='RGB' in args)
 
         if cleanup_args is not None:
             handle_cleanup(**cleanup_args)
