@@ -4,6 +4,7 @@ import logging
 import subprocess
 import shutil
 import os
+#import inspect
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import re
@@ -56,7 +57,8 @@ def handle_cleanup(stitching_path, outpaths, outnames=None, raw_paths=None, dele
 
     # check same size -> raise ValueError if mismatch
     if len(stitched_files) != len(outpaths) or (outnames and len(stitched_files) != len(outnames)):
-        raise ValueError('number of files to copy and provided destinations mismatch')
+        logging.error('number of files to copy and provided destinations mismatch')
+        #raise ValueError('number of files to copy and provided destinations mismatch')
 
     # do the copy
     for (idx, f) in enumerate(stitched_files):
@@ -77,7 +79,7 @@ def handle_cleanup(stitching_path, outpaths, outnames=None, raw_paths=None, dele
 
 class AsyncFileProcesser:
 
-    def __init__(self, fiji, script_nd2, script_tiff=None, num_workers=1):
+    def __init__(self, fiji, script_nd2, script_tiff=None, num_workers=1, debug=False):
         self.pool = ThreadPoolExecutor(max_workers=num_workers)
         self.fiji = fiji
         self.script_nd2 = script_nd2
@@ -85,9 +87,18 @@ class AsyncFileProcesser:
 
         self.projector = ProjectorApplication()
 
+        '''
+        self.logger : logging.Logger = logging.getLogger('stitching.main')
+        sh = logging.StreamHandler()
+        sh.setLevel(logging.DEBUG if debug else logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        sh.setFormatter(formatter)
+        self.logger.addHandler(sh)
+        '''
 
     def __call__(self, args, tiff=False, cleanup_args=None, project=False):
 
+        logging.debug('stitching pipeline called with arguments {}'.format(locals()))
 
         if tiff:
             self.pool.submit(self.fiji_call, *(self.fiji, self.script_tiff, args, cleanup_args, project))
@@ -96,24 +107,39 @@ class AsyncFileProcesser:
 
 
     def quit(self):
+
+        logging.info('shutting down.')
         self.pool.shutdown()
 
 
     def fiji_call(self, fiji, script, args, cleanup_args=None, project=False):
 
+        #logging.debug('called with arguments {}'.format(locals()))
+
         if not isinstance(args, list):
             args = [args, 50, 50, 1.0] if script is self.script_tiff else [args]
 
+        #logging.debug('args for macro: {}'.format(args))
         if not os.path.exists(args[0] + '_stitched'):
+            #logging.debug('mkingdir: {}'.format(args[0] + '_stitched'))
             os.mkdir(args[0] + '_stitched')
-        
-        pr = subprocess.Popen("{} --headless -macro {} '{}'".format(fiji, script, ' '.join(map(str, args))),
-                stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True, universal_newlines=True, encoding='utf-8')
-        for t in pr.stdout:
-            print(t, end='')
+        #logging.debug('args for macro: {}'.format(args))
+
+        logging.info('Stitching {} ...'.format(args[0]))
+
+        with open(args[0] + '_stitch_log.txt', 'w') as fd:
+            subprocess.run("{} --headless -macro {} '{}'".format(fiji, script, ' '.join(map(str, args))),
+                                  stderr=subprocess.STDOUT, stdout=fd, shell=True, universal_newlines=True,
+                                  encoding='utf-8')
+
+        stitching_path = args[0] + '_stitched'
+        logging.info('Stitching to {} DONE.'.format(stitching_path))
+        logging.info('Stitching log written to {}'.format(args[0] + '_stitch_log.txt'))
 
         if project:
-            stitching_path = args[0] + '_stitched'
+
+
+            logging.info('Projecting {} ...'.format(stitching_path))
             stitched_files = [f for f in os.listdir(stitching_path) if f.endswith(STITCHER_ENDING)]
             stitched_files.sort(key=lambda x: split_str_digit(x))
 
@@ -122,6 +148,7 @@ class AsyncFileProcesser:
             self.projector._project(self.projector.projector,
                                     infiles=[os.path.join(stitching_path, f) for f in stitched_files], outfile_base=outbase, rgb='RGB' in args)
 
+            logging.info('Projection to {} DONE.'.format(outbase))
         if cleanup_args is not None:
             handle_cleanup(**cleanup_args)
 
