@@ -19,7 +19,7 @@ def main():
     parser.add_argument('-d', '--debug', help='show debug output', action='store_true')
     args = parser.parse_args()
 
-    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+    logging.basicConfig(format='%(asctime)s  %(funcName)s %(levelname)s: %(message)s',
                         level=logging.DEBUG,
                         datefmt='%d.%m.%Y %H:%M:%S')
     logger = logging.getLogger(__name__)

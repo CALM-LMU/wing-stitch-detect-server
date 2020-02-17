@@ -56,13 +56,16 @@ def handle_cleanup(stitching_path, outpaths, outnames=None, raw_paths=None, dele
     stitched_files.sort(key=lambda x: split_str_digit(x))
 
     # check same size -> raise ValueError if mismatch
+    # this might be desired if we do not want to save stitched results at all
+    '''
     if len(stitched_files) != len(outpaths) or (outnames and len(stitched_files) != len(outnames)):
         logging.error('number of files to copy and provided destinations mismatch')
         #raise ValueError('number of files to copy and provided destinations mismatch')
 
     # do the copy
-    for (idx, f) in enumerate(stitched_files):
-        shutil.copy2(os.path.join(stitching_path, f), os.path.join(outpaths[idx], outnames[idx] if outnames else f))
+    # we loop over output files, not input (to implicitly discard files we no longer want)
+    for (idx, p) in enumerate(outpaths):
+        shutil.copy2(os.path.join(stitching_path, stitched_files[idx]), os.path.join(p, outnames[idx] if outnames else stitched_files[idx]))
 
     # stitching is a directory -> remove
     if delete_stitching:
