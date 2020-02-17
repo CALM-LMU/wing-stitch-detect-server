@@ -18,6 +18,8 @@ from skimage.color import rgb2grey
 import netifaces as ni
 import numpy as np
 
+from biodetectron.eval import BboxPredictor as BboxDetectron
+
 
 # filetypes to read with bioformates/imread (nd2 or tiff)
 BF_ENDINGS = ['nd2']
@@ -175,6 +177,47 @@ class MulticlassDetectionWorkerMRCNN:
             return []
 
 
+class DetectionWorkerDetectron:
+    def __init__(self, cfg_dir):
+        self.bboxpred = BboxDetectron(cfg_dir)
+
+    def __call__(self, img_path, existing_ds=4, filt=None, label_export_path=None):
+        try:
+
+            if img_path.split('.')[-1] in BF_ENDINGS:
+                img = read_bf(img_path)
+            elif img_path.split('.')[-1] in IMREAD_ENDINGS:
+                img = imread(img_path)
+            else:
+                raise ValueError('Unknown file ending')
+
+            #if len(img.shape) < 3:
+            #    img = np.expand_dims(img, axis=-1)
+            #    img = np.repeat(img, 3, axis=-1)
+            #elif img.shape[-1] == 1:
+            #    img = np.repeat(img, 3, axis=-1)
+
+            print('read image of dtype {}'.format(img.dtype))
+
+            #img = rescale_intensity(img, in_range='dtype', out_range=(0, 255))
+            #img = img.astype(np.uint8)
+
+            boxes, classes, scores = self.bboxpred.detect_one_image(img)
+
+            # flip xy
+            new_boxes = []
+            for box in boxes:
+                if not np.any(np.asarray(box) < 23):
+                    if not box[2] > img.shape[1] and not box[3] > img.shape[0]:
+                        new_boxes.append([float(box[1]), float(box[0]), float(box[3]), float(box[2])])
+
+            return new_boxes
+
+        except Exception as e:
+            traceback.print_exc()
+            return []
+
+
 def main():
 
     parser = argparse.ArgumentParser()
@@ -190,6 +233,8 @@ def main():
         server.register_function(DetectionWorkerMRCNN(args.net_dir), "detect_bbox")
     elif args.model == 'multiclass':
         server.register_function(MulticlassDetectionWorkerMRCNN(args.net_dir), "detect_bbox")
+    elif args.model == 'detectron':
+        server.register_function(DetectionWorkerDetectron(args.net_dir), "detect_bbox")
     else:
         server.register_function(DetectionWorker(args.net_dir), "detect_bbox")
 
