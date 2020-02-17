@@ -34,6 +34,10 @@ class ProjectorApplication(object):
         # TODO: handle sharpness index
         projs, idxs = projector.project(imgs, ret_idx=True)
 
+        # projector output BGR -> RGB
+        if rgb:
+            projs = reversed(projs)
+
         idxs = idxs.astype(np.uint8)
         stack = np.stack(projs)
         if rgb:
