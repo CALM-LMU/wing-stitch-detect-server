@@ -57,7 +57,7 @@ def handle_cleanup(stitching_path, outpaths, outnames=None, raw_paths=None, dele
 
     # check same size -> raise ValueError if mismatch
     # this might be desired if we do not want to save stitched results at all
-    '''
+
     if len(stitched_files) != len(outpaths) or (outnames and len(stitched_files) != len(outnames)):
         logging.error('number of files to copy and provided destinations mismatch')
         #raise ValueError('number of files to copy and provided destinations mismatch')
